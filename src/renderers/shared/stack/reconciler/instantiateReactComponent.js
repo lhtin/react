@@ -22,6 +22,14 @@ var ReactCompositeComponentWrapper = function(element) {
   this.construct(element);
 };
 
+Object.assign(
+  ReactCompositeComponentWrapper.prototype,
+  ReactCompositeComponent,
+  {
+    _instantiateReactComponent: instantiateReactComponent,
+  },
+);
+
 function getDeclarationErrorAddendum(owner) {
   if (owner) {
     var name = owner.getName();
@@ -50,6 +58,7 @@ function isInternalComponentType(type) {
 
 /**
  * Given a ReactNode, create an instance that will actually be mounted.
+ * internal instance：存储element相关信息
  *
  * @param {ReactNode} node
  * @param {boolean} shouldHaveDebugID
@@ -60,8 +69,10 @@ function instantiateReactComponent(node, shouldHaveDebugID) {
   var instance;
 
   if (node === null || node === false) {
+    // 1. null和false的情况
     instance = ReactEmptyComponent.create(instantiateReactComponent);
   } else if (typeof node === 'object') {
+    // 2. React element对象
     var element = node;
     var type = element.type;
     if (typeof type !== 'function' && typeof type !== 'string') {
@@ -90,8 +101,10 @@ function instantiateReactComponent(node, shouldHaveDebugID) {
 
     // Special case string values
     if (typeof element.type === 'string') {
+      // 2.1 原始element
       instance = ReactHostComponent.createInternalComponent(element);
     } else if (isInternalComponentType(element.type)) {
+      // 2.2 内部定义的组件
       // This is temporarily available for custom components that are not string
       // representations. I.e. ART. Once those are updated to use the string
       // representation, we can drop this code path.
@@ -102,9 +115,11 @@ function instantiateReactComponent(node, shouldHaveDebugID) {
         instance.getHostNode = instance.getNativeNode;
       }
     } else {
+      // 2.3 用户定义的组件
       instance = new ReactCompositeComponentWrapper(element);
     }
   } else if (typeof node === 'string' || typeof node === 'number') {
+    // 3. 字符串或者数字
     instance = ReactHostComponent.createInstanceForText(node);
   } else {
     invariant(false, 'Encountered invalid React node of type %s', typeof node);
@@ -140,13 +155,5 @@ function instantiateReactComponent(node, shouldHaveDebugID) {
 
   return instance;
 }
-
-Object.assign(
-  ReactCompositeComponentWrapper.prototype,
-  ReactCompositeComponent,
-  {
-    _instantiateReactComponent: instantiateReactComponent,
-  },
-);
 
 module.exports = instantiateReactComponent;

@@ -38,6 +38,7 @@ var CompositeTypes = {
 
 function StatelessComponent(Component) {}
 StatelessComponent.prototype.render = function() {
+  //// this为public instance，通过this key获取到internal instance
   var Component = ReactInstanceMap.get(this)._currentElement.type;
   var element = Component(this.props, this.context, this.updater);
   warnIfInvalidElement(Component, element);
@@ -193,6 +194,7 @@ var ReactCompositeComponent = {
     var updateQueue = transaction.getUpdateQueue();
 
     // Initialize the public class
+    //// 是否是class Component，而不是function Component
     var doConstruct = shouldConstruct(Component);
     var inst = this._constructComponent(
       doConstruct,
@@ -212,6 +214,7 @@ var ReactCompositeComponent = {
           'returned undefined, an array or some other invalid object.',
         Component.displayName || Component.name || 'Component',
       );
+      //// 将function component等价转换为无状态class component
       inst = new StatelessComponent(Component);
       this._compositeType = CompositeTypes.StatelessFunctional;
     } else {
@@ -257,6 +260,7 @@ var ReactCompositeComponent = {
     this._instance = inst;
 
     // Store a reference from the instance back to the internal representation
+    //// 以public instance为key，存储internal instance
     ReactInstanceMap.set(inst, this);
 
     if (__DEV__) {
