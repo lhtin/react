@@ -483,6 +483,9 @@ function ReactDOMComponent(element) {
 
 ReactDOMComponent.displayName = 'ReactDOMComponent';
 
+/**
+ * @lends {ReactDOMComponent.prototype}
+ */
 ReactDOMComponent.Mixin = {
   /**
    * Generates root tag markup then recurses. This method has side effects and

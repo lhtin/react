@@ -122,6 +122,9 @@ function ReactReconcileTransaction(useCreateElement: boolean) {
   this.useCreateElement = useCreateElement;
 }
 
+/**
+ * @lends {ReactReconcileTransaction.prototype}
+ */
 var Mixin = {
   /**
    * @see Transaction

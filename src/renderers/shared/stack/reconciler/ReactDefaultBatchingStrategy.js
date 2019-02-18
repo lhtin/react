@@ -23,6 +23,7 @@ var RESET_BATCHED_UPDATES = {
 
 var FLUSH_BATCHED_UPDATES = {
   initialize: emptyFunction,
+  //// close时检查将需要更新的组件（dirtyComponents）flush
   close: ReactUpdates.flushBatchedUpdates.bind(ReactUpdates),
 };
 
@@ -40,6 +41,9 @@ Object.assign(ReactDefaultBatchingStrategyTransaction.prototype, Transaction, {
 
 var transaction = new ReactDefaultBatchingStrategyTransaction();
 
+/**
+ * @lends {ReactDefaultBatchingStrategy.prototype}
+ */
 var ReactDefaultBatchingStrategy = {
   isBatchingUpdates: false,
 
@@ -54,6 +58,8 @@ var ReactDefaultBatchingStrategy = {
 
     // The code is written this way to avoid extra allocations
     if (alreadyBatchingUpdates) {
+      //// 如果已经处在更新中，则直接更新
+      //// ? 感觉不可能出现alreadyBatchingUpdates为true的情况吧？因为一执行完isBatchingUpdates就被设置为了false
       return callback(a, b, c, d, e);
     } else {
       return transaction.perform(callback, null, a, b, c, d, e);

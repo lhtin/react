@@ -485,7 +485,7 @@ var ReactMount = {
       var prevWrappedElement = prevComponent._currentElement;
       var prevElement = prevWrappedElement.props.child;
       if (shouldUpdateReactComponent(prevElement, nextElement)) {
-        // 走更新流程
+        //// 走更新流程
         var publicInst = prevComponent._renderedComponent.getPublicInstance();
         var updatedCallback =
           callback &&
@@ -501,7 +501,7 @@ var ReactMount = {
         );
         return publicInst;
       } else {
-        // 走全新流程，先unmount
+        //// 走全新流程，先unmount掉之前的节点
         ReactMount.unmountComponentAtNode(container);
       }
     }

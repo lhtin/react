@@ -22,7 +22,9 @@ var updateBatchNumber = 0;
 var asapCallbackQueue = CallbackQueue.getPooled();
 var asapEnqueued = false;
 
-var batchingStrategy = null;
+//// 显式写为ReactDefaultBatchingStrategy
+//// var batchingStrategy = null;
+var batchingStrategy = require('./ReactDefaultBatchingStrategy');
 
 function ensureInjected() {
   invariant(
@@ -217,6 +219,7 @@ function enqueueUpdate(component) {
   // function, like setState, forceUpdate, etc.; creation and
   // destruction of top-level components is guarded in ReactMount.)
 
+  //// 为了让updater处在isBatchingUpdates中
   if (!batchingStrategy.isBatchingUpdates) {
     batchingStrategy.batchedUpdates(enqueueUpdate, component);
     return;
@@ -278,8 +281,8 @@ var ReactUpdates = {
   ReactReconcileTransaction: null,
 
   batchedUpdates: batchedUpdates,
-  enqueueUpdate: enqueueUpdate,
-  flushBatchedUpdates: flushBatchedUpdates,
+  enqueueUpdate,
+  flushBatchedUpdates,
   injection: ReactUpdatesInjection,
   asap: asap,
 };

@@ -26,7 +26,7 @@ var ReactReconciler = {
   /**
    * Initializes the component, renders markup, and registers event listeners.
    *
-   * @param {ReactComponent} internalInstance
+   * @param {ReactCompositeComponent|ReactDOMComponent} internalInstance
    * @param {ReactReconcileTransaction|ReactServerRenderingTransaction} transaction
    * @param {?object} the containing host component instance
    * @param {?object} info about the host container
@@ -110,7 +110,7 @@ var ReactReconciler = {
   /**
    * Update a component using a new element.
    *
-   * @param {ReactComponent} internalInstance
+   * @param {ReactCompositeComponent|ReactDOMComponent} internalInstance
    * @param {ReactElement} nextElement
    * @param {ReactReconcileTransaction} transaction
    * @param {object} context
@@ -175,7 +175,7 @@ var ReactReconciler = {
   /**
    * Flush any dirty changes in a component.
    *
-   * @param {ReactComponent} internalInstance
+   * @param {ReactCompositeComponent|ReactDOMComponent} internalInstance
    * @param {ReactReconcileTransaction} transaction
    * @internal
    */

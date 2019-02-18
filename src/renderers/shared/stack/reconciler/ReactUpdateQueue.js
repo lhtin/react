@@ -73,6 +73,7 @@ function getInternalInstanceReadyForUpdate(publicInstance, callerName) {
 /**
  * ReactUpdateQueue allows for state updates to be scheduled into a later
  * reconciliation step.
+ * @lends {ReactUpdateQueue.prototype}
  */
 var ReactUpdateQueue = {
   /**
@@ -222,6 +223,7 @@ var ReactUpdateQueue = {
    * internal. This provides a merging strategy that is not available to deep
    * properties which is confusing. TODO: Expose pendingState or don't use it
    * during the merge.
+   * //// 将待修改的state放到internalInstance的_pendingStateQueue数组中
    *
    * @param {ReactClass} publicInstance The instance that should rerender.
    * @param {object} partialState Next partial state to be merged with state.

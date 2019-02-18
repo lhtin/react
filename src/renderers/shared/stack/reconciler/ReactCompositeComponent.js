@@ -856,6 +856,7 @@ var ReactCompositeComponent = {
         }
       } else {
         if (this._compositeType === CompositeTypes.PureClass) {
+          //// Pure Component会做浅层比较决定要不要更新
           shouldUpdate =
             !shallowEqual(prevProps, nextProps) ||
             !shallowEqual(inst.state, nextState);
@@ -1013,8 +1014,10 @@ var ReactCompositeComponent = {
    * @internal
    */
   _updateRenderedComponent: function(transaction, context) {
+    //// 当前组件的子internal instance
     var prevComponentInstance = this._renderedComponent;
     var prevRenderedElement = prevComponentInstance._currentElement;
+    //// 根据变化的props和state获取新的element
     var nextRenderedElement = this._renderValidatedComponent();
 
     var debugID = 0;
@@ -1023,6 +1026,7 @@ var ReactCompositeComponent = {
     }
 
     if (shouldUpdateReactComponent(prevRenderedElement, nextRenderedElement)) {
+      //// 如果type没变，则可以直接递归下去
       ReactReconciler.receiveComponent(
         prevComponentInstance,
         nextRenderedElement,
@@ -1030,6 +1034,7 @@ var ReactCompositeComponent = {
         this._processChildContext(context),
       );
     } else {
+      //// 否则，先销毁之前的实例，在创建新的实例
       var oldHostNode = ReactReconciler.getHostNode(prevComponentInstance);
       ReactReconciler.unmountComponent(prevComponentInstance, false);
 

@@ -18,6 +18,7 @@ var lowPriorityWarning = require('lowPriorityWarning');
 
 /**
  * Base class helpers for the updating state of a component.
+ * @param {ReactUpdateQueue} updater
  */
 function ReactComponent(props, context, updater) {
   this.props = props;
