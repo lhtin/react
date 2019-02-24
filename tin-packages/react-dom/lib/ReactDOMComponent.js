@@ -495,6 +495,7 @@ ReactDOMComponent.Mixin = {
       var ownerDocument = hostContainerInfo._ownerDocument;
       var el;
       if (namespaceURI === DOMNamespaces.html) {
+        //// 1. html标签
         if (this._tag === 'script') {
           // Create the script via .innerHTML so its "parser-inserted" flag is
           // set to true and it does not execute
@@ -513,6 +514,8 @@ ReactDOMComponent.Mixin = {
       } else {
         el = ownerDocument.createElementNS(namespaceURI, this._currentElement.type);
       }
+
+      //// 缓存DOM元素到internal instance的_hostNode上
       ReactDOMComponentTree.precacheNode(this, el);
       this._flags |= Flags.hasCachedChildNodes;
       if (!this._hostParent) {
@@ -690,6 +693,7 @@ ReactDOMComponent.Mixin = {
       var childrenToUse = contentToUse != null ? null : props.children;
       // TODO: Validate that text is allowed as a child of this node
       if (contentToUse != null) {
+        //// 字符串或数字
         // Avoid setting textContent when the text is empty. In IE11 setting
         // textContent on a text area will cause the placeholder to not
         // show within the textarea until it has been focused and blurred again.
@@ -701,6 +705,7 @@ ReactDOMComponent.Mixin = {
           DOMLazyTree.queueText(lazyTree, contentToUse);
         }
       } else if (childrenToUse != null) {
+        //// 子元素
         var mountImages = this.mountChildren(childrenToUse, transaction, context);
         for (var i = 0; i < mountImages.length; i++) {
           DOMLazyTree.queueChild(lazyTree, mountImages[i]);

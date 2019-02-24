@@ -53,7 +53,7 @@ function isInternalComponentType(type) {
  * Given a ReactNode, create an instance that will actually be mounted.
  * internal instance：存储element相关信息
  *
- * @param {ReactNode} node
+ * @param {ReactElement} node
  * @param {boolean} shouldHaveDebugID
  * @return {object} A new instance of the element's constructor.
  * @protected
@@ -63,6 +63,9 @@ function instantiateReactComponent(node, shouldHaveDebugID) {
 
   if (node === null || node === false) {
     // 1. null和false的情况
+    /**
+     * @type {ReactDOMEmptyComponent}
+     */
     instance = ReactEmptyComponent.create(instantiateReactComponent);
   } else if (typeof node === 'object') {
     // 2. React element对象
@@ -82,6 +85,9 @@ function instantiateReactComponent(node, shouldHaveDebugID) {
     // Special case string values
     if (typeof element.type === 'string') {
       // 2.1 原始element
+      /**
+       * @type {ReactDOMComponent}
+       */
       instance = ReactHostComponent.createInternalComponent(element);
     } else if (isInternalComponentType(element.type)) {
       // 2.2 内部定义的组件
@@ -100,6 +106,9 @@ function instantiateReactComponent(node, shouldHaveDebugID) {
     }
   } else if (typeof node === 'string' || typeof node === 'number') {
     // 3. 字符串或者数字
+    /**
+     * @type {ReactDOMTextComponent}
+     */
     instance = ReactHostComponent.createInstanceForText(node);
   } else {
     !false ? process.env.NODE_ENV !== 'production' ? invariant(false, 'Encountered invalid React node of type %s', typeof node) : _prodInvariant('131', typeof node) : void 0;

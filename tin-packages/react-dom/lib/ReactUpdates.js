@@ -236,8 +236,7 @@ var ReactUpdates = {
   /**
    * React references `ReactReconcileTransaction` using this property in order
    * to allow dependency injection.
-   *
-   * @internal
+   * @type {ReactReconcileTransaction}
    */
   ReactReconcileTransaction: null,
 
