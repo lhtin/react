@@ -72,10 +72,13 @@ function traverseAllChildrenImpl(children, nameSoFar, callback, traverseContext)
   // The following is inlined from ReactElement. This means we can optimize
   // some checks. React Fiber also inlines this logic for similar purposes.
   type === 'object' && children.$$typeof === REACT_ELEMENT_TYPE) {
-    callback(traverseContext, children,
-    // If it's the only child, treat the name as if it was wrapped in an array
-    // so that it's consistent if the number of children grows.
-    nameSoFar === '' ? SEPARATOR + getComponentKey(children, 0) : nameSoFar);
+    callback(
+      traverseContext,
+      children,
+      // If it's the only child, treat the name as if it was wrapped in an array
+      // so that it's consistent if the number of children grows.
+      nameSoFar === '' ? SEPARATOR + getComponentKey(children, 0) : nameSoFar
+    );
     return 1;
   }
 

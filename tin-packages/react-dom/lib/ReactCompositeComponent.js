@@ -359,6 +359,7 @@ var ReactCompositeComponent = {
     }
 
     // If not a stateless component, we now render
+    //// 获取class component所渲染的element
     if (renderedElement === undefined) {
       renderedElement = this._renderValidatedComponent();
     }
@@ -656,6 +657,13 @@ var ReactCompositeComponent = {
     }
   },
 
+  /**
+   * //// 合并state
+   * @param props
+   * @param context
+   * @returns {*}
+   * @private
+   */
   _processPendingState: function (props, context) {
     var inst = this._instance;
     var queue = this._pendingStateQueue;
@@ -674,7 +682,12 @@ var ReactCompositeComponent = {
     var nextState = _assign({}, replace ? queue[0] : inst.state);
     for (var i = replace ? 1 : 0; i < queue.length; i++) {
       var partial = queue[i];
-      _assign(nextState, typeof partial === 'function' ? partial.call(inst, nextState, props, context) : partial);
+      _assign(nextState,
+        typeof partial === 'function'
+          //// setState有可能是传入的是函数
+          ? partial.call(inst, nextState, props, context)
+          : partial
+      );
     }
 
     return nextState;
@@ -818,6 +831,7 @@ var ReactCompositeComponent = {
   },
 
   /**
+   * //// 获取组件所要渲染的element
    * @private
    */
   _renderValidatedComponent: function () {
@@ -900,6 +914,9 @@ var ReactCompositeComponent = {
   },
 
   // Stub
+  /**
+   * @link {instantiateReactComponent}
+   */
   _instantiateReactComponent: null
 };
 

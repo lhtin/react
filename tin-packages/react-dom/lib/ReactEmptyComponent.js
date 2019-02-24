@@ -17,6 +17,10 @@ var ReactEmptyComponentInjection = {
 };
 
 var ReactEmptyComponent = {
+  /**
+   * @param instantiate
+   * @returns {ReactDOMEmptyComponent}
+   */
   create: function (instantiate) {
     return emptyComponentFactory(instantiate);
   }

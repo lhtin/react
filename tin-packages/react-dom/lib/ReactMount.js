@@ -85,7 +85,7 @@ function internalGetID(node) {
 /**
  * Mounts this component and inserts it into the DOM.
  *
- * @param {ReactComponent} componentInstance The instance to mount.
+ * @param {ReactComponent} wrapperInstance The instance to mount.
  * @param {DOMElement} container DOM element to mount into.
  * @param {ReactReconcileTransaction} transaction
  * @param {boolean} shouldReuseMarkup If true, do not insert markup
@@ -119,8 +119,9 @@ function mountComponentIntoNode(wrapperInstance, container, transaction, shouldR
  */
 function batchedMountComponentIntoNode(componentInstance, container, shouldReuseMarkup, context) {
   var transaction = ReactUpdates.ReactReconcileTransaction.getPooled(
-  /* useCreateElement */
-  !shouldReuseMarkup && ReactDOMFeatureFlags.useCreateElement);
+    /* useCreateElement */
+    !shouldReuseMarkup && ReactDOMFeatureFlags.useCreateElement
+  );
   transaction.perform(mountComponentIntoNode, null, componentInstance, container, transaction, shouldReuseMarkup, context);
   ReactUpdates.ReactReconcileTransaction.release(transaction);
 }
@@ -316,6 +317,7 @@ var ReactMount = {
 
     ReactUpdates.batchedUpdates(batchedMountComponentIntoNode, componentInstance, container, shouldReuseMarkup, context);
 
+    //// 顶层组件有一个唯一id，根据唯一id保存对应的internal instance
     var wrapperID = componentInstance._instance.rootID;
     instancesByReactRootID[wrapperID] = componentInstance;
 

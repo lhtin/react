@@ -34,7 +34,7 @@ var SELECTION_RESTORATION = {
 };
 
 /**
- * Suppresses events (blur/focus) that could be inadvertently dispatched due to
+ * Suppresses(阻止) events (blur/focus) that could be inadvertently(不经意) dispatched due to
  * high level DOM manipulations (like temporarily removing a text input from the
  * DOM).
  */

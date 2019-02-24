@@ -63,6 +63,7 @@ var ReactReconciler = {
   /**
    * Releases any resources allocated by `mountComponent`.
    *
+   * @param {ReactCompositeComponent|ReactDOMComponent} internalInstance
    * @final
    * @internal
    */
