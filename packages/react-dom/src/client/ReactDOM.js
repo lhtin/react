@@ -533,6 +533,7 @@ function legacyCreateRootFromDOMContainer(
     }
   }
   // Legacy roots are not async by default.
+  //// 目前默认开启的是同步渲染方式
   const isConcurrent = false;
   return new ReactRoot(container, isConcurrent, shouldHydrate);
 }
