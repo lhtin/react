@@ -381,8 +381,11 @@ var ReactMount = {
       }
     }
 
+    //// root dom node
     var reactRootElement = getReactRootElementInContainer(container);
+    //// container下渲染的dom是否有react标识，表示它是由react渲染的
     var containerHasReactMarkup = reactRootElement && !!internalGetID(reactRootElement);
+    //// container是否有非root的child，说明不是通过render方法渲染的
     var containerHasNonRootReactChild = hasNonRootReactChild(container);
 
     if (process.env.NODE_ENV !== 'production') {
