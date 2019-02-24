@@ -24,14 +24,18 @@ function shouldUpdateReactComponent(prevElement, nextElement) {
   var prevEmpty = prevElement === null || prevElement === false;
   var nextEmpty = nextElement === null || nextElement === false;
   if (prevEmpty || nextEmpty) {
+    //// 1. 同为empty走更新
     return prevEmpty === nextEmpty;
   }
 
   var prevType = typeof prevElement;
   var nextType = typeof nextElement;
+
   if (prevType === 'string' || prevType === 'number') {
+    //// 2. 同为string或者number走更新
     return nextType === 'string' || nextType === 'number';
   } else {
+    //// 3. 同type且同key
     return nextType === 'object' && prevElement.type === nextElement.type && prevElement.key === nextElement.key;
   }
 }
