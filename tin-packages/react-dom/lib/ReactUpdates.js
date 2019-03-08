@@ -43,6 +43,7 @@ var NESTED_UPDATES = {
       // these new updates so that if A's componentDidUpdate calls setState on
       // B, B will update before the callback A's updater provided when calling
       // setState.
+      //// 移除已经更新过的脏组件，然后flush
       dirtyComponents.splice(0, this.dirtyComponentsLength);
       flushBatchedUpdates();
     } else {
@@ -176,6 +177,7 @@ var flushBatchedUpdates = function () {
     if (asapEnqueued) {
       asapEnqueued = false;
       var queue = asapCallbackQueue;
+      // 获取一个新的空queue
       asapCallbackQueue = CallbackQueue.getPooled();
       queue.notifyAll();
       CallbackQueue.release(queue);

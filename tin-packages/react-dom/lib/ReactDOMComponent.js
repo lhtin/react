@@ -922,8 +922,10 @@ ReactDOMComponent.Mixin = {
     var lastHasContentOrHtml = lastContent != null || lastHtml != null;
     var nextHasContentOrHtml = nextContent != null || nextHtml != null;
     if (lastChildren != null && nextChildren == null) {
+      //// 如果之前有children，现在没有children，则置空children
       this.updateChildren(null, transaction, context);
     } else if (lastHasContentOrHtml && !nextHasContentOrHtml) {
+      //// 如果之前有content，现在没有content，则置空content
       this.updateTextContent('');
       if (process.env.NODE_ENV !== 'production') {
         ReactInstrumentation.debugTool.onSetChildren(this._debugID, []);
@@ -932,6 +934,7 @@ ReactDOMComponent.Mixin = {
 
     if (nextContent != null) {
       if (lastContent !== nextContent) {
+        //// 更新content
         this.updateTextContent('' + nextContent);
         if (process.env.NODE_ENV !== 'production') {
           setAndValidateContentChildDev.call(this, nextContent);
@@ -939,6 +942,7 @@ ReactDOMComponent.Mixin = {
       }
     } else if (nextHtml != null) {
       if (lastHtml !== nextHtml) {
+        //// 更新html
         this.updateMarkup('' + nextHtml);
       }
       if (process.env.NODE_ENV !== 'production') {
@@ -948,7 +952,7 @@ ReactDOMComponent.Mixin = {
       if (process.env.NODE_ENV !== 'production') {
         setAndValidateContentChildDev.call(this, null);
       }
-
+      //// 更新children
       this.updateChildren(nextChildren, transaction, context);
     }
   },

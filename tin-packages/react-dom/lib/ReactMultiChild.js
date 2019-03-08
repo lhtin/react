@@ -182,7 +182,7 @@ var ReactMultiChild = {
             ReactCurrentOwner.current = this._currentElement._owner;
             return ReactChildReconciler.instantiateChildren(nestedChildren, transaction, context, selfDebugID);
           } finally {
-            ReactCurrentOwner.current = null;
+            ReactCurrenReactMultiChildtOwner.current = null;
           }
         }
       }

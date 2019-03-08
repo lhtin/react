@@ -136,7 +136,7 @@ var ReactReconciler = {
   /**
    * Flush any dirty changes in a component.
    *
-   * @param {ReactCompositeComponent|ReactDOMComponent} internalInstance
+   * @param {ReactCompositeComponent} internalInstance
    * @param {ReactReconcileTransaction} transaction
    * @internal
    */
