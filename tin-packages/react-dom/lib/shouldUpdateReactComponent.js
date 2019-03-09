@@ -35,8 +35,10 @@ function shouldUpdateReactComponent(prevElement, nextElement) {
     //// 2. 同为string或者number走更新
     return nextType === 'string' || nextType === 'number';
   } else {
-    //// 3. 同type且同key
-    return nextType === 'object' && prevElement.type === nextElement.type && prevElement.key === nextElement.key;
+    //// 3. 优化点，可能的bug：
+    //// 按照文档上的说法（Keys only make sense in the context of the surrounding array.），这个地方是不应该判断key是否相同的。首先在数组的地方调用时，已经保证了传入的prevElement和nextElement的key一致，其次在非数组中判断是一个错误，会导致非数组判断是否可以刷新时变得更严格了
+    // return nextType === 'object' && prevElement.type === nextElement.type && prevElement.key === nextElement.key;
+    return nextType === 'object' && prevElement.type === nextElement.type;
   }
 }
 
