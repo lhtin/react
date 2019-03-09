@@ -4,13 +4,14 @@
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
  *
- * 
+ *
  */
 
 'use strict';
 
 /**
  * Escape and wrap key so it is safe to use as a reactid
+ * //// 相当于将key中的冒号（:）转义一下
  *
  * @param {string} key to be escaped.
  * @return {string} the escaped key.

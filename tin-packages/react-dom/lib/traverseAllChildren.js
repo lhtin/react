@@ -53,7 +53,7 @@ function getComponentKey(component, index) {
 }
 
 /**
- * @param {?*} children Children tree container.
+ * @param {?*} children Children tree container. child或者children
  * @param {!string} nameSoFar Name of the key path so far.
  * @param {!function} callback Callback to invoke with each child found.
  * @param {?*} traverseContext Used to pass information throughout the traversal
@@ -72,6 +72,7 @@ function traverseAllChildrenImpl(children, nameSoFar, callback, traverseContext)
   // The following is inlined from ReactElement. This means we can optimize
   // some checks. React Fiber also inlines this logic for similar purposes.
   type === 'object' && children.$$typeof === REACT_ELEMENT_TYPE) {
+    //// 单个child
     callback(
       traverseContext,
       children,

@@ -374,6 +374,11 @@ function ReactDOMComponent(element) {
   this._renderedChildren = null;
   this._previousStyle = null;
   this._previousStyleCopy = null;
+  /**
+   * 本host组件对应的DOM
+   * @type {object}
+   * @private
+   */
   this._hostNode = null;
   this._hostParent = null;
   this._rootNodeID = 0;
@@ -506,7 +511,7 @@ ReactDOMComponent.Mixin = {
         } else if (props.is) {
           el = ownerDocument.createElement(this._currentElement.type, props.is);
         } else {
-          // Separate else branch instead of using `props.is || undefined` above becuase of a Firefox bug.
+          // Separate else branch instead of using `props.is || undefined` above because of a Firefox bug.
           // See discussion in https://github.com/facebook/react/pull/6896
           // and discussion in https://bugzilla.mozilla.org/show_bug.cgi?id=1276240
           el = ownerDocument.createElement(this._currentElement.type);
@@ -515,14 +520,16 @@ ReactDOMComponent.Mixin = {
         el = ownerDocument.createElementNS(namespaceURI, this._currentElement.type);
       }
 
-      //// 缓存DOM元素到internal instance的_hostNode上
+      //// 缓存DOM元素到internal instance的_hostNode上，缓存internal instance到DOM的一个自定义属性上
       ReactDOMComponentTree.precacheNode(this, el);
       this._flags |= Flags.hasCachedChildNodes;
       if (!this._hostParent) {
         DOMPropertyOperations.setAttributeForRoot(el);
       }
+      //// 更新DOM属性
       this._updateDOMProperties(null, props, transaction);
       var lazyTree = DOMLazyTree(el);
+      //// 创建子元素并插入
       this._createInitialChildren(transaction, props, context, lazyTree);
       mountImage = lazyTree;
     } else {
@@ -837,7 +844,9 @@ ReactDOMComponent.Mixin = {
     }
     for (propKey in nextProps) {
       var nextProp = nextProps[propKey];
-      var lastProp = propKey === STYLE ? this._previousStyleCopy : lastProps != null ? lastProps[propKey] : undefined;
+      var lastProp = propKey === STYLE
+        ? this._previousStyleCopy
+        : (lastProps != null ? lastProps[propKey] : undefined);
       if (!nextProps.hasOwnProperty(propKey) || nextProp === lastProp || nextProp == null && lastProp == null) {
         continue;
       }

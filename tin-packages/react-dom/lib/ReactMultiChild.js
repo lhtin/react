@@ -296,6 +296,7 @@ var ReactMultiChild = {
     },
 
     /**
+     * //// 更新子元素
      * @param {?object} nextNestedChildrenElements Nested child element maps.
      * @param {ReactReconcileTransaction} transaction
      * @final

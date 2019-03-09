@@ -143,6 +143,7 @@ var DOMProperty = {
   /**
    * Map from property "standard name" to an object with info about how to set
    * the property in the DOM. Each object contains:
+   * //// 表明DOM node上的属性如何设置
    *
    * attributeName:
    *   Used when rendering markup or with `*Attribute()`.

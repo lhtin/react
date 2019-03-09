@@ -36,6 +36,7 @@ function shouldPrecacheNode(node, nodeID) {
  */
 function getRenderedHostOrTextFromComponent(component) {
   var rendered;
+  //// 只有composite和empty组件有_renderedComponent
   while (rendered = component._renderedComponent) {
     component = rendered;
   }
