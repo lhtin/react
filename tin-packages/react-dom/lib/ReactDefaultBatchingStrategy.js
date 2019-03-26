@@ -57,8 +57,6 @@ var ReactDefaultBatchingStrategy = {
 
     // The code is written this way to avoid extra allocations
     if (alreadyBatchingUpdates) {
-      //// 如果已经处在更新中，则直接更新
-      //// ? 感觉不可能出现alreadyBatchingUpdates为true的情况吧？因为一执行完isBatchingUpdates就被设置为了false
       return callback(a, b, c, d, e);
     } else {
       ReactDefaultBatchingStrategy.isBatchingUpdates = true;

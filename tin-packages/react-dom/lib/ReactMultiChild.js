@@ -219,11 +219,13 @@ var ReactMultiChild = {
      * @internal
      */
     mountChildren: function (nestedChildren, transaction, context) {
+      //// 1. 依次初始化子元素对应的内部实例
       var children = this._reconcilerInstantiateChildren(nestedChildren, transaction, context);
       this._renderedChildren = children;
 
       var mountImages = [];
       var index = 0;
+      //// 2. 依次调用mountComponent获取子DOM
       for (var name in children) {
         if (children.hasOwnProperty(name)) {
           var child = children[name];

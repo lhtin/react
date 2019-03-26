@@ -99,6 +99,7 @@ function mountComponentIntoNode(wrapperInstance, container, transaction, shouldR
     console.time(markerName);
   }
 
+  //// 1. 递归获取整个应用的DOM树
   var markup = ReactReconciler.mountComponent(wrapperInstance, transaction, null, ReactDOMContainerInfo(wrapperInstance, container), context, 0 /* parentDebugID */
   );
 
@@ -107,6 +108,7 @@ function mountComponentIntoNode(wrapperInstance, container, transaction, shouldR
   }
 
   wrapperInstance._renderedComponent._topLevelWrapper = wrapperInstance;
+  //// 2. 插入到对应的容器中
   ReactMount._mountImageIntoNode(markup, container, wrapperInstance, shouldReuseMarkup, transaction);
 }
 
@@ -309,12 +311,15 @@ var ReactMount = {
     !isValidContainer(container) ? process.env.NODE_ENV !== 'production' ? invariant(false, '_registerComponent(...): Target container is not a DOM element.') : _prodInvariant('37') : void 0;
 
     ReactBrowserEventEmitter.ensureScrollValueMonitoring();
+
+    //// 第一步：根据元素的类型初始化内部实例
     var componentInstance = instantiateReactComponent(nextElement, false);
 
     // The initial render is synchronous but any updates that happen during
     // rendering, in componentWillMount or componentDidMount, will be batched
     // according to the current batching strategy.
 
+    //// 第二部：渲染元素（初始化组件实例或创建DOM）到浏览器中
     ReactUpdates.batchedUpdates(batchedMountComponentIntoNode, componentInstance, container, shouldReuseMarkup, context);
 
     //// 顶层组件有一个唯一id，根据唯一id保存对应的internal instance

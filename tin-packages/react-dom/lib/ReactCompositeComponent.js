@@ -124,22 +124,22 @@ var ReactCompositeComponent = {
    * @internal
    */
   construct: function (element) {
-    this._currentElement = element;
+    this._currentElement = element; //// 对应的自定义元素
     this._rootNodeID = 0;
     this._compositeType = null;
-    this._instance = null;
+    this._instance = null; //// 对应自定义组件实例
     this._hostParent = null;
     this._hostContainerInfo = null;
 
     // See ReactUpdateQueue
     this._updateBatchNumber = null;
     this._pendingElement = null;
-    this._pendingStateQueue = null;
+    this._pendingStateQueue = null; //// 待更新状态队列
     this._pendingReplaceState = false;
     this._pendingForceUpdate = false;
 
     this._renderedNodeType = null;
-    this._renderedComponent = null;
+    this._renderedComponent = null; //// 所渲染的元素的内部实例
     this._context = null;
     this._mountOrder = 0;
     this._topLevelWrapper = null;
@@ -182,10 +182,12 @@ var ReactCompositeComponent = {
     var updateQueue = transaction.getUpdateQueue();
 
     // Initialize the public class
-    //// 是否是class Component，而不是function Component
+    //// mount第一步：初始化组件
+    //// 确定是class组件还是函数组件，也就是能不能初始化
     var doConstruct = shouldConstruct(Component);
     var inst = this._constructComponent(doConstruct, publicProps, publicContext, updateQueue);
-    var renderedElement;
+
+    var renderedElement; //// 当前元素所渲染的元素
 
     // Support functional components
     if (!doConstruct && (inst == null || inst.render == null)) {
@@ -218,7 +220,7 @@ var ReactCompositeComponent = {
 
     // These should be set up in the constructor, but as a convenience for
     // simpler class abstractions, we set them up after the fact.
-    inst.props = publicProps;
+    inst.props = publicProps; //// 设置组件实例的props
     inst.context = publicContext;
     inst.refs = emptyObject;
     inst.updater = updateQueue;
@@ -226,7 +228,7 @@ var ReactCompositeComponent = {
     this._instance = inst;
 
     // Store a reference from the instance back to the internal representation
-    //// 以public instance为key，存储internal instance
+    //// 以外部实例为key，存储组件实例
     ReactInstanceMap.set(inst, this);
 
     if (process.env.NODE_ENV !== 'production') {
@@ -252,7 +254,7 @@ var ReactCompositeComponent = {
     this._pendingReplaceState = false;
     this._pendingForceUpdate = false;
 
-    var markup;
+    var markup; //// 自定义元素所渲染的标签
     if (inst.unstable_handleError) {
       markup = this.performInitialMountWithErrorHandling(renderedElement, hostParent, hostContainerInfo, transaction, context);
     } else {
@@ -267,6 +269,7 @@ var ReactCompositeComponent = {
           }, _this._debugID, 'componentDidMount');
         });
       } else {
+        //// 添加didMount回调到mountReady事件中
         transaction.getReactMountReady().enqueue(inst.componentDidMount, inst);
       }
     }
@@ -343,6 +346,7 @@ var ReactCompositeComponent = {
       debugID = this._debugID;
     }
 
+    //// 调用willMount回调
     if (inst.componentWillMount) {
       if (process.env.NODE_ENV !== 'production') {
         measureLifeCyclePerf(function () {
@@ -359,17 +363,19 @@ var ReactCompositeComponent = {
     }
 
     // If not a stateless component, we now render
-    //// 获取class component所渲染的element
+    //// 获取class组件所渲染的元素
     if (renderedElement === undefined) {
       renderedElement = this._renderValidatedComponent();
     }
 
     var nodeType = ReactNodeTypes.getType(renderedElement);
     this._renderedNodeType = nodeType;
+    //// 初始化子元素的内部实例
     var child = this._instantiateReactComponent(renderedElement, nodeType !== ReactNodeTypes.EMPTY /* shouldHaveDebugID */
     );
     this._renderedComponent = child;
 
+    //// 递归调用子元素的mountComponent方法获取标签
     var markup = ReactReconciler.mountComponent(child, transaction, hostParent, hostContainerInfo, this._processChildContext(context), debugID);
 
     if (process.env.NODE_ENV !== 'production') {
@@ -607,6 +613,7 @@ var ReactCompositeComponent = {
     // An update here will schedule an update but immediately set
     // _pendingStateQueue which will ensure that any state updates gets
     // immediately reconciled instead of waiting for the next batch.
+    //// 调用willReceiveProps回调
     if (willReceive && inst.componentWillReceiveProps) {
       if (process.env.NODE_ENV !== 'production') {
         measureLifeCyclePerf(function () {
@@ -617,7 +624,10 @@ var ReactCompositeComponent = {
       }
     }
 
+    //// 合并state
     var nextState = this._processPendingState(nextProps, nextContext);
+
+    //// 是否真的需要更新
     var shouldUpdate = true;
 
     if (!this._pendingForceUpdate) {
@@ -720,6 +730,7 @@ var ReactCompositeComponent = {
       prevContext = inst.context;
     }
 
+    //// 调用willUpdate生命周期
     if (inst.componentWillUpdate) {
       if (process.env.NODE_ENV !== 'production') {
         measureLifeCyclePerf(function () {
@@ -730,6 +741,7 @@ var ReactCompositeComponent = {
       }
     }
 
+    //// 更新属性到最新
     this._currentElement = nextElement;
     this._context = unmaskedContext;
     inst.props = nextProps;
@@ -738,6 +750,7 @@ var ReactCompositeComponent = {
 
     this._updateRenderedComponent(transaction, unmaskedContext);
 
+    //// 调用didUpdate
     if (hasComponentDidUpdate) {
       if (process.env.NODE_ENV !== 'production') {
         transaction.getReactMountReady().enqueue(function () {
@@ -756,10 +769,10 @@ var ReactCompositeComponent = {
    * @internal
    */
   _updateRenderedComponent: function (transaction, context) {
-    //// 当前组件的子internal instance
+    //// 当前组件所渲染的内部实例
     var prevComponentInstance = this._renderedComponent;
     var prevRenderedElement = prevComponentInstance._currentElement;
-    //// 根据变化的props和state获取新的element
+    //// 调用当前组件实例的render方法获取新的渲染元素
     var nextRenderedElement = this._renderValidatedComponent();
 
     var debugID = 0;

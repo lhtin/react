@@ -369,17 +369,12 @@ function ReactDOMComponent(element) {
   var tag = element.type;
   validateDangerousTag(tag);
   this._currentElement = element;
-  this._tag = tag.toLowerCase();
+  this._tag = tag.toLowerCase(); //// 当前基础元素对应的标签
   this._namespaceURI = null;
   this._renderedChildren = null;
   this._previousStyle = null;
   this._previousStyleCopy = null;
-  /**
-   * 本host组件对应的DOM
-   * @type {object}
-   * @private
-   */
-  this._hostNode = null;
+  this._hostNode = null; //// 当前元素对应的DOM节点对象
   this._hostParent = null;
   this._rootNodeID = 0;
   this._domID = 0;
@@ -418,6 +413,7 @@ ReactDOMComponent.Mixin = {
 
     var props = this._currentElement.props;
 
+    //// 特定标签的预处理，先忽略
     switch (this._tag) {
       case 'audio':
       case 'form':
@@ -495,6 +491,7 @@ ReactDOMComponent.Mixin = {
       this._ancestorInfo = validateDOMNesting.updatedAncestorInfo(parentInfo, this._tag, this);
     }
 
+    //// 基础元素mount主流程
     var mountImage;
     if (transaction.useCreateElement) {
       var ownerDocument = hostContainerInfo._ownerDocument;
@@ -520,16 +517,17 @@ ReactDOMComponent.Mixin = {
         el = ownerDocument.createElementNS(namespaceURI, this._currentElement.type);
       }
 
-      //// 缓存DOM元素到internal instance的_hostNode上，缓存internal instance到DOM的一个自定义属性上
+      //// 缓存DOM元素到内部实例的_hostNode上，缓存internal instance到DOM的一个自定义属性上
       ReactDOMComponentTree.precacheNode(this, el);
       this._flags |= Flags.hasCachedChildNodes;
       if (!this._hostParent) {
         DOMPropertyOperations.setAttributeForRoot(el);
       }
-      //// 更新DOM属性
+      //// 更新节点上的属性，先跳过
       this._updateDOMProperties(null, props, transaction);
       var lazyTree = DOMLazyTree(el);
-      //// 创建子元素并插入
+
+      //// 重点：递归渲染子元素获取子DOM然后插入到当前DOM
       this._createInitialChildren(transaction, props, context, lazyTree);
       mountImage = lazyTree;
     } else {
@@ -696,6 +694,7 @@ ReactDOMComponent.Mixin = {
         DOMLazyTree.queueHTML(lazyTree, innerHTML.__html);
       }
     } else {
+      //// 正常情况，子元素可能是文本
       var contentToUse = CONTENT_TYPES[typeof props.children] ? props.children : null;
       var childrenToUse = contentToUse != null ? null : props.children;
       // TODO: Validate that text is allowed as a child of this node
@@ -712,9 +711,10 @@ ReactDOMComponent.Mixin = {
           DOMLazyTree.queueText(lazyTree, contentToUse);
         }
       } else if (childrenToUse != null) {
-        //// 子元素
+        //// 依次mount各个子元素，获取子DOM列表
         var mountImages = this.mountChildren(childrenToUse, transaction, context);
         for (var i = 0; i < mountImages.length; i++) {
+          //// 依次将子DOM插入到
           DOMLazyTree.queueChild(lazyTree, mountImages[i]);
         }
       }
@@ -769,7 +769,10 @@ ReactDOMComponent.Mixin = {
     }
 
     assertValidProps(this, nextProps);
+    //// 更新DOM属性
     this._updateDOMProperties(lastProps, nextProps, transaction);
+
+    //// 更新子元素列表
     this._updateDOMChildren(lastProps, nextProps, transaction, context);
 
     switch (this._tag) {
@@ -890,6 +893,7 @@ ReactDOMComponent.Mixin = {
           DOMPropertyOperations.setValueForAttribute(getNode(this), propKey, nextProp);
         }
       } else if (DOMProperty.properties[propKey] || DOMProperty.isCustomAttribute(propKey)) {
+        //// DOM支持的属性
         var node = getNode(this);
         // If we're updating to null or undefined, we should remove the property
         // from the DOM node instead of inadvertently setting to a string. This

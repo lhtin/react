@@ -116,6 +116,7 @@ function runBatchedUpdates(transaction) {
   // Since reconciling a component higher in the owner hierarchy usually (not
   // always -- see shouldComponentUpdate()) will reconcile children, reconcile
   // them before their children by sorting the array.
+  //// 根据mount顺序排序，确保父组件比子组件先更新
   dirtyComponents.sort(mountOrderComparator);
 
   // Any updates enqueued while reconciling must be performed after this entire
@@ -198,12 +199,15 @@ function enqueueUpdate(component) {
   // function, like setState, forceUpdate, etc.; creation and
   // destruction of top-level components is guarded in ReactMount.)
 
-  //// 为了让updater处在isBatchingUpdates中
+  //// 启动批量更新流程，目的是保证脏组件的更新是在批量更新流程中
+  //// 但实际上，这里只有React可控的那些会批量更新（比如didMount，点击事件回调等）
+  //// 像类似setTimeout回调中的setState就只能每调用依次render依次，而无法等所有setState执行完之后再render
   if (!batchingStrategy.isBatchingUpdates) {
     batchingStrategy.batchedUpdates(enqueueUpdate, component);
     return;
   }
 
+  //// 添加脏组件中
   dirtyComponents.push(component);
   if (component._updateBatchNumber == null) {
     component._updateBatchNumber = updateBatchNumber + 1;

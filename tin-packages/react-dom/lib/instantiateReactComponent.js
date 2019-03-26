@@ -62,13 +62,13 @@ function instantiateReactComponent(node, shouldHaveDebugID) {
   var instance;
 
   if (node === null || node === false) {
-    // 1. null和false的情况
+    //// 1. null和false的情况
     /**
      * @type {ReactDOMEmptyComponent}
      */
     instance = ReactEmptyComponent.create(instantiateReactComponent);
   } else if (typeof node === 'object') {
-    // 2. React element对象
+    //// 2. React element对象
     var element = node;
     var type = element.type;
     if (typeof type !== 'function' && typeof type !== 'string') {
@@ -84,13 +84,13 @@ function instantiateReactComponent(node, shouldHaveDebugID) {
 
     // Special case string values
     if (typeof element.type === 'string') {
-      // 2.1 原始element
+      //// 2.1 基础element
       /**
-       * @type {ReactDOMComponent}
+       * @link {ReactDOMComponent}
        */
       instance = ReactHostComponent.createInternalComponent(element);
     } else if (isInternalComponentType(element.type)) {
-      // 2.2 内部定义的组件
+      //// 2.2 内部定义的组件，一般不存在，无需关注
       // This is temporarily available for custom components that are not string
       // representations. I.e. ART. Once those are updated to use the string
       // representation, we can drop this code path.
@@ -101,11 +101,14 @@ function instantiateReactComponent(node, shouldHaveDebugID) {
         instance.getHostNode = instance.getNativeNode;
       }
     } else {
-      // 2.3 用户定义的组件
+      //// 2.3 用户定义的组件
+      /**
+       * @link {ReactCompositeComponent.construct}
+       */
       instance = new ReactCompositeComponentWrapper(element);
     }
   } else if (typeof node === 'string' || typeof node === 'number') {
-    // 3. 字符串或者数字
+    //// 3. 字符串或者数字
     /**
      * @type {ReactDOMTextComponent}
      */

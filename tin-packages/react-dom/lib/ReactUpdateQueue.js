@@ -206,15 +206,18 @@ var ReactUpdateQueue = {
       process.env.NODE_ENV !== 'production' ? warning(partialState != null, 'setState(...): You passed an undefined or null state object; ' + 'instead, use forceUpdate().') : void 0;
     }
 
+    //// 根据组件实例获取对应的内部实例
     var internalInstance = getInternalInstanceReadyForUpdate(publicInstance, 'setState');
 
     if (!internalInstance) {
       return;
     }
 
+    //// 重点：将需要更新的state放到内部实例的_pendingStateQueue数组中，等待启动批量更新时修改到组件实例的state中
     var queue = internalInstance._pendingStateQueue || (internalInstance._pendingStateQueue = []);
     queue.push(partialState);
 
+    //// 将本内部实例记录到脏组件列表中
     enqueueUpdate(internalInstance);
   },
 
