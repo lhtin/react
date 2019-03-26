@@ -171,7 +171,7 @@ var ReactMultiChild = {
    * children. This is used by `ReactDOMComponent` to mount, update, and
    * unmount child components.
    *
-   * @lends {ReactMultiChild.prototype}
+   * @lends {ReactDOMComponent.prototype}
    */
   Mixin: {
     _reconcilerInstantiateChildren: function (nestedChildren, transaction, context) {
