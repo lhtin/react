@@ -205,6 +205,8 @@ var ReactMultiChild = {
           return nextChildren;
         }
       }
+      //// 以子元素的key作为属性名，存储对应的元素
+      //// {a: element1, b: element2}
       nextChildren = flattenChildren(nextNestedChildrenElements, selfDebugID);
       ReactChildReconciler.updateChildren(prevChildren, nextChildren, mountImages, removedNodes, transaction, this, this._hostContainerInfo, context, selfDebugID);
       return nextChildren;
@@ -308,6 +310,7 @@ var ReactMultiChild = {
       var prevChildren = this._renderedChildren;
       var removedNodes = {};
       var mountImages = [];
+      //// 第一步：根据前后子元素列表判断那些是新增的，那些是移除的，那些是可以复用的
       var nextChildren = this._reconcilerUpdateChildren(prevChildren, nextNestedChildrenElements, mountImages, removedNodes, transaction, context);
       if (!nextChildren && !prevChildren) {
         return;
@@ -321,6 +324,7 @@ var ReactMultiChild = {
       // `nextMountIndex` will increment for each newly mounted child.
       var nextMountIndex = 0;
       var lastPlacedNode = null;
+      //// 第二步
       for (name in nextChildren) {
         if (!nextChildren.hasOwnProperty(name)) {
           continue;
@@ -328,6 +332,7 @@ var ReactMultiChild = {
         var prevChild = prevChildren && prevChildren[name];
         var nextChild = nextChildren[name];
         if (prevChild === nextChild) {
+          //// 如果前后都存在，则确定下是否要移动
           updates = enqueue(updates, this.moveChild(prevChild, lastPlacedNode, nextIndex, lastIndex));
           lastIndex = Math.max(prevChild._mountIndex, lastIndex);
           prevChild._mountIndex = nextIndex;
@@ -338,6 +343,7 @@ var ReactMultiChild = {
             // The `removedNodes` loop below will actually remove the child.
           }
           // The child must be instantiated before it's mounted.
+          /// 新元素，插入到对应位置
           updates = enqueue(updates, this._mountChildAtIndex(nextChild, mountImages[nextMountIndex], lastPlacedNode, nextIndex, transaction, context));
           nextMountIndex++;
         }
@@ -385,6 +391,13 @@ var ReactMultiChild = {
       // If the index of `child` is less than `lastIndex`, then it needs to
       // be moved. Otherwise, we do not need to move it because a child will be
       // inserted or moved before `child`.
+      //// _mountIndex表示子元素在原来列表中的位置
+      //// lastIndex表示该子元素之前的子元素中在原来列表中最后的位置
+      //// A B C D E
+      //// E C A D B
+      //// 当前元素为D，位置是3
+      //// D前面的E，C，A中位置最后的是E，为4
+      //// 3 < 4，移动D到A后面
       if (child._mountIndex < lastIndex) {
         return makeMove(child, afterNode, toIndex);
       }

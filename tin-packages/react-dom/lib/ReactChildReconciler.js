@@ -104,16 +104,18 @@ var ReactChildReconciler = {
       var prevElement = prevChild && prevChild._currentElement;
       var nextElement = nextElementChildren[name];
       if (prevChild != null && shouldUpdateReactComponent(prevElement, nextElement)) {
-        //// 沿用以前的
+        //// 沿用以前的，key和type相同
         ReactReconciler.receiveComponent(prevChild, nextElement, transaction, context);
         nextElementChildren[name] = prevChild;
       } else {
         if (prevChild) {
+          //// 将key相同但是类型不同的元素放到移除列表中去
           removedNodes[name] = ReactReconciler.getHostNode(prevChild);
+          //// 同时做下清理
           ReactReconciler.unmountComponent(prevChild, false);
         }
         // The child must be instantiated before it's mounted.
-        //// 创建新的
+        //// 根据新的子元素创建新的内部实例
         var nextChildInstance = instantiateReactComponent(nextElement, true);
         nextElementChildren[name] = nextChildInstance;
         // Creating mount image now ensures refs are resolved in right order
@@ -126,6 +128,7 @@ var ReactChildReconciler = {
     for (name in prevChildren) {
       if (prevChildren.hasOwnProperty(name) && !(nextElementChildren && nextElementChildren.hasOwnProperty(name))) {
         prevChild = prevChildren[name];
+        //// 将不再新列表中的元素添加到移除列表中去
         removedNodes[name] = ReactReconciler.getHostNode(prevChild);
         ReactReconciler.unmountComponent(prevChild, false);
       }
