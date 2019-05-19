@@ -899,9 +899,6 @@ export function mountEventComponent(
     const rootContainerInstance = ((eventComponentInstance.rootInstance: any): Container);
     const rootElement = rootContainerInstance.ownerDocument;
     const responder = eventComponentInstance.responder;
-    if (__DEV__) {
-      Object.freeze(responder);
-    }
     const {rootEventTypes, targetEventTypes} = responder;
     if (targetEventTypes !== undefined) {
       listenToEventResponderEventTypes(targetEventTypes, rootElement);
@@ -949,11 +946,14 @@ export function getEventTargetChildElement(
           style: {
             position: 'absolute',
             zIndex: -1,
+            pointerEvents: null,
             bottom: bottom ? `-${bottom}px` : '0px',
             left: left ? `-${left}px` : '0px',
             right: right ? `-${right}px` : '0px',
             top: top ? `-${top}px` : '0px',
           },
+          hydrateTouchHitTarget: true,
+          suppressHydrationWarning: true,
         },
       };
     }

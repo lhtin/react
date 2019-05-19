@@ -12,16 +12,13 @@ can be found [here](./docs).
 
 ## EventComponent
 
-An Event Component is defined by a module that exports an object of the
-following type:
+An Event Component is defined using `React.unstable_createEventComponent`:
 
 ```js
-type EventComponent = {|
-  $$typeof: REACT_EVENT_COMPONENT_TYPE,
-  displayName?: string,
-  props: null | Object,
+const EventComponent = React.unstable_createEventComponent(
   responder: EventResponder,
-|};
+  displayName: string
+);
 ```
 
 ## EventResponder
@@ -34,7 +31,7 @@ events, and implement a state machine.
 // types
 type ResponderEventType =
   | string
-  | {name: string, passive?: boolean, capture?: boolean};
+  | {name: string, passive?: boolean};
 
 type ResponderEvent = {|
   nativeEvent: any,
@@ -133,10 +130,6 @@ Returns `true` if the instance has taken ownership of the responder.
 ### isPositionWithinTouchHitTarget(x: number, y: number): boolean
 
 Returns `true` if the global coordinates lie within the TouchHitTarget.
-
-### isTargetDirectlyWithinEventComponent(target: Element): boolean
-
-Returns `true` is the target element is within the direct subtree of the Event Component instance, i.e., the target is not nested within an Event Component instance that is a descendant of the current instance.
 
 ### isTargetWithinElement(target: Element, element: Element): boolean
 

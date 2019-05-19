@@ -83,12 +83,13 @@ export type RefObject = {|
 
 export type ReactEventResponderEventType =
   | string
-  | {name: string, passive?: boolean, capture?: boolean};
+  | {name: string, passive?: boolean};
 
 export type ReactEventResponder = {
   targetEventTypes?: Array<ReactEventResponderEventType>,
   rootEventTypes?: Array<ReactEventResponderEventType>,
   createInitialState?: (props: null | Object) => Object,
+  allowMultipleHostChildren: boolean,
   stopLocalPropagation: boolean,
   onEvent?: (
     event: ReactResponderEvent,
@@ -172,7 +173,6 @@ export type ReactResponderContext = {
     parentTarget: Element | Document,
   ) => boolean,
   isTargetWithinEventComponent: (Element | Document) => boolean,
-  isTargetDirectlyWithinEventComponent: (Element | Document) => boolean,
   isTargetWithinEventResponderScope: (Element | Document) => boolean,
   isPositionWithinTouchHitTarget: (x: number, y: number) => boolean,
   addRootEventTypes: (
@@ -189,4 +189,14 @@ export type ReactResponderContext = {
   clearTimeout: (timerId: Symbol) => void,
   getFocusableElementsInScope(): Array<HTMLElement>,
   getActiveDocument(): Document,
+  objectAssign: Function,
+  getEventPointerType(
+    event: ReactResponderEvent,
+  ): '' | 'mouse' | 'keyboard' | 'pen' | 'touch',
+  getEventCurrentTarget(event: ReactResponderEvent): Element,
+  getTimeStamp: () => number,
+  isTargetWithinHostComponent: (
+    target: Element | Document,
+    elementType: string,
+  ) => boolean,
 };

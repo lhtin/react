@@ -11,7 +11,8 @@ import type {
   ReactResponderEvent,
   ReactResponderContext,
 } from 'shared/ReactTypes';
-import {REACT_EVENT_COMPONENT_TYPE} from 'shared/ReactSymbols';
+
+import React from 'react';
 
 type FocusScopeProps = {
   autoFocus: Boolean,
@@ -25,7 +26,7 @@ type FocusScopeState = {
 };
 
 const targetEventTypes = [{name: 'keydown', passive: false}];
-const rootEventTypes = [{name: 'focus', passive: true, capture: true}];
+const rootEventTypes = [{name: 'focus', passive: true}];
 
 function focusElement(element: ?HTMLElement) {
   if (element != null) {
@@ -54,6 +55,8 @@ const FocusScopeResponder = {
       currentFocusedNode: null,
     };
   },
+  allowMultipleHostChildren: true,
+  stopLocalPropagation: false,
   onEvent(
     event: ReactResponderEvent,
     context: ReactResponderContext,
@@ -179,9 +182,7 @@ const FocusScopeResponder = {
   },
 };
 
-export default {
-  $$typeof: REACT_EVENT_COMPONENT_TYPE,
-  displayName: 'FocusScope',
-  props: null,
-  responder: FocusScopeResponder,
-};
+export default React.unstable_createEventComponent(
+  FocusScopeResponder,
+  'FocusScope',
+);
