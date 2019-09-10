@@ -26,10 +26,11 @@ import {
   flushRoot,
   createContainer,
   updateContainer,
+  batchedEventUpdates,
   batchedUpdates,
   unbatchedUpdates,
-  interactiveUpdates,
-  flushInteractiveUpdates,
+  discreteUpdates,
+  flushDiscreteUpdates,
   flushSync,
   flushControlled,
   injectIntoDevTools,
@@ -37,22 +38,23 @@ import {
   findHostInstance,
   findHostInstanceWithWarning,
   flushPassiveEffects,
+  IsThisRendererActing,
 } from 'react-reconciler/inline.dom';
 import {createPortal as createPortalImpl} from 'shared/ReactPortal';
 import {canUseDOM} from 'shared/ExecutionEnvironment';
-import {setBatchingImplementation} from 'events/ReactGenericBatching';
+import {setBatchingImplementation} from 'legacy-events/ReactGenericBatching';
 import {
   setRestoreImplementation,
   enqueueStateRestore,
   restoreStateIfNeeded,
-} from 'events/ReactControlledComponent';
-import {injection as EventPluginHubInjection} from 'events/EventPluginHub';
-import {runEventsInBatch} from 'events/EventBatching';
-import {eventNameDispatchConfigs} from 'events/EventPluginRegistry';
+} from 'legacy-events/ReactControlledComponent';
+import {injection as EventPluginHubInjection} from 'legacy-events/EventPluginHub';
+import {runEventsInBatch} from 'legacy-events/EventBatching';
+import {eventNameDispatchConfigs} from 'legacy-events/EventPluginRegistry';
 import {
   accumulateTwoPhaseDispatches,
   accumulateDirectDispatches,
-} from 'events/EventPropagators';
+} from 'legacy-events/EventPropagators';
 import {LegacyRoot, ConcurrentRoot, BatchedRoot} from 'shared/ReactRootTags';
 import {has as hasInstance} from 'shared/ReactInstanceMap';
 import ReactVersion from 'shared/ReactVersion';
@@ -68,6 +70,7 @@ import {
   getNodeFromInstance,
   getFiberCurrentPropsFromNode,
   getClosestInstanceFromNode,
+  markContainerAsRoot,
 } from './ReactDOMComponentTree';
 import {restoreControlledState} from './ReactDOMComponent';
 import {dispatchEvent} from '../events/ReactDOMEventListener';
@@ -365,16 +368,29 @@ ReactWork.prototype._onCommit = function(): void {
 function ReactSyncRoot(
   container: DOMContainer,
   tag: RootTag,
-  hydrate: boolean,
+  options: void | RootOptions,
 ) {
   // Tag is either LegacyRoot or Concurrent Root
-  const root = createContainer(container, tag, hydrate);
+  const hydrate = options != null && options.hydrate === true;
+  const hydrationCallbacks =
+    (options != null && options.hydrationOptions) || null;
+  const root = createContainer(container, tag, hydrate, hydrationCallbacks);
   this._internalRoot = root;
+  markContainerAsRoot(root.current, container);
 }
 
-function ReactRoot(container: DOMContainer, hydrate: boolean) {
-  const root = createContainer(container, ConcurrentRoot, hydrate);
+function ReactRoot(container: DOMContainer, options: void | RootOptions) {
+  const hydrate = options != null && options.hydrate === true;
+  const hydrationCallbacks =
+    (options != null && options.hydrationOptions) || null;
+  const root = createContainer(
+    container,
+    ConcurrentRoot,
+    hydrate,
+    hydrationCallbacks,
+  );
   this._internalRoot = root;
+  markContainerAsRoot(root.current, container);
 }
 
 ReactRoot.prototype.render = ReactSyncRoot.prototype.render = function(
@@ -481,8 +497,9 @@ function shouldHydrateDueToLegacyHeuristic(container) {
 
 setBatchingImplementation(
   batchedUpdates,
-  interactiveUpdates,
-  flushInteractiveUpdates,
+  discreteUpdates,
+  flushDiscreteUpdates,
+  batchedEventUpdates,
 );
 
 let warnedAboutHydrateAPI = false;
@@ -529,7 +546,15 @@ function legacyCreateRootFromDOMContainer(
   }
 
   // Legacy roots are not batched.
-  return new ReactSyncRoot(container, LegacyRoot, shouldHydrate);
+  return new ReactSyncRoot(
+    container,
+    LegacyRoot,
+    shouldHydrate
+      ? {
+          hydrate: true,
+        }
+      : undefined,
+  );
 }
 
 function legacyRenderSubtreeIntoContainer(
@@ -783,7 +808,14 @@ const ReactDOM: Object = {
 
   unstable_batchedUpdates: batchedUpdates,
 
-  unstable_interactiveUpdates: interactiveUpdates,
+  // TODO remove this legacy method, unstable_discreteUpdates replaces it
+  unstable_interactiveUpdates: (fn, a, b, c) => {
+    flushDiscreteUpdates();
+    return discreteUpdates(fn, a, b, c);
+  },
+
+  unstable_discreteUpdates: discreteUpdates,
+  unstable_flushDiscreteUpdates: flushDiscreteUpdates,
 
   flushSync: flushSync,
 
@@ -807,12 +839,17 @@ const ReactDOM: Object = {
       dispatchEvent,
       runEventsInBatch,
       flushPassiveEffects,
+      IsThisRendererActing,
     ],
   },
 };
 
 type RootOptions = {
   hydrate?: boolean,
+  hydrationOptions?: {
+    onHydrated?: (suspenseNode: Comment) => void,
+    onDeleted?: (suspenseNode: Comment) => void,
+  },
 };
 
 function createRoot(
@@ -828,8 +865,7 @@ function createRoot(
     functionName,
   );
   warnIfReactDOMContainerInDEV(container);
-  const hydrate = options != null && options.hydrate === true;
-  return new ReactRoot(container, hydrate);
+  return new ReactRoot(container, options);
 }
 
 function createSyncRoot(
@@ -845,8 +881,7 @@ function createSyncRoot(
     functionName,
   );
   warnIfReactDOMContainerInDEV(container);
-  const hydrate = options != null && options.hydrate === true;
-  return new ReactSyncRoot(container, BatchedRoot, hydrate);
+  return new ReactSyncRoot(container, BatchedRoot, options);
 }
 
 function warnIfReactDOMContainerInDEV(container) {

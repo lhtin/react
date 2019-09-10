@@ -27,30 +27,124 @@ function sleep(period) {
 
 describe('ReactTestUtils.act()', () => {
   // first we run all the tests with concurrent mode
-  let concurrentRoot;
+  let concurrentRoot = null;
   function renderConcurrent(el, dom) {
     concurrentRoot = ReactDOM.unstable_createRoot(dom);
     concurrentRoot.render(el);
   }
+
   function unmountConcurrent(_dom) {
     if (concurrentRoot !== null) {
       concurrentRoot.unmount();
       concurrentRoot = null;
     }
   }
-  runActTests('concurrent mode', renderConcurrent, unmountConcurrent);
+
+  function rerenderConcurrent(el) {
+    concurrentRoot.render(el);
+  }
+
+  runActTests(
+    'concurrent mode',
+    renderConcurrent,
+    unmountConcurrent,
+    rerenderConcurrent,
+  );
 
   // and then in sync mode
+
+  let syncDom = null;
   function renderSync(el, dom) {
+    syncDom = dom;
     ReactDOM.render(el, dom);
   }
+
   function unmountSync(dom) {
+    syncDom = null;
     ReactDOM.unmountComponentAtNode(dom);
   }
-  runActTests('legacy sync mode', renderSync, unmountSync);
+
+  function rerenderSync(el) {
+    ReactDOM.render(el, syncDom);
+  }
+
+  runActTests('legacy sync mode', renderSync, unmountSync, rerenderSync);
+
+  // and then in batched mode
+  let batchedRoot = null;
+  function renderBatched(el, dom) {
+    batchedRoot = ReactDOM.unstable_createSyncRoot(dom);
+    batchedRoot.render(el);
+  }
+
+  function unmountBatched(dom) {
+    if (batchedRoot !== null) {
+      batchedRoot.unmount();
+      batchedRoot = null;
+    }
+  }
+
+  function rerenderBatched(el) {
+    batchedRoot.render(el);
+  }
+
+  runActTests('batched mode', renderBatched, unmountBatched, rerenderBatched);
+
+  describe('unacted effects', () => {
+    function App() {
+      React.useEffect(() => {}, []);
+      return null;
+    }
+
+    it('does not warn in legacy sync mode', () => {
+      expect(() => {
+        ReactDOM.render(<App />, document.createElement('div'));
+      }).toWarnDev([]);
+    });
+
+    it('warns in strict mode', () => {
+      expect(() => {
+        ReactDOM.render(
+          <React.StrictMode>
+            <App />
+          </React.StrictMode>,
+          document.createElement('div'),
+        );
+      }).toWarnDev([
+        'An update to App ran an effect, but was not wrapped in act(...)',
+        'An update to App ran an effect, but was not wrapped in act(...)',
+      ]);
+    });
+
+    it('warns in batched mode', () => {
+      expect(() => {
+        const root = ReactDOM.unstable_createSyncRoot(
+          document.createElement('div'),
+        );
+        root.render(<App />);
+        Scheduler.unstable_flushAll();
+      }).toWarnDev([
+        'An update to App ran an effect, but was not wrapped in act(...)',
+        'An update to App ran an effect, but was not wrapped in act(...)',
+      ]);
+    });
+
+    it('warns in concurrent mode', () => {
+      expect(() => {
+        const root = ReactDOM.unstable_createRoot(
+          document.createElement('div'),
+        );
+        root.render(<App />);
+        Scheduler.unstable_flushAll();
+      }).toWarnDev([
+        'An update to App ran an effect, but was not wrapped in act(...)',
+        'An update to App ran an effect, but was not wrapped in act(...)',
+      ]);
+    });
+  });
 });
 
-function runActTests(label, render, unmount) {
+function runActTests(label, render, unmount, rerender) {
   describe(label, () => {
     beforeEach(() => {
       jest.resetModules();
@@ -63,15 +157,17 @@ function runActTests(label, render, unmount) {
       container = document.createElement('div');
       document.body.appendChild(container);
     });
+
     afterEach(() => {
       unmount(container);
       document.body.removeChild(container);
     });
+
     describe('sync', () => {
       it('can use act to flush effects', () => {
         function App() {
           React.useEffect(() => {
-            Scheduler.yieldValue(100);
+            Scheduler.unstable_yieldValue(100);
           });
           return null;
         }
@@ -87,7 +183,7 @@ function runActTests(label, render, unmount) {
         function App() {
           let [ctr, setCtr] = React.useState(0);
           React.useEffect(() => {
-            Scheduler.yieldValue(ctr);
+            Scheduler.unstable_yieldValue(ctr);
           });
           return (
             <button id="button" onClick={() => setCtr(x => x + 1)}>
@@ -137,6 +233,26 @@ function runActTests(label, render, unmount) {
         expect(container.innerHTML).toBe('5');
       });
 
+      it('should flush effects only on exiting the outermost act', () => {
+        function App() {
+          React.useEffect(() => {
+            Scheduler.unstable_yieldValue(0);
+          });
+          return null;
+        }
+        // let's nest a couple of act() calls
+        act(() => {
+          act(() => {
+            render(<App />, container);
+          });
+          // the effect wouldn't have yielded yet because
+          // we're still inside an act() scope
+          expect(Scheduler).toHaveYielded([]);
+        });
+        // but after exiting the last one, effects get flushed
+        expect(Scheduler).toHaveYielded([0]);
+      });
+
       it('warns if a setState is called outside of act(...)', () => {
         let setValue = null;
         function App() {
@@ -153,13 +269,16 @@ function runActTests(label, render, unmount) {
           'An update to App inside a test was not wrapped in act(...).',
         ]);
       });
+
       describe('fake timers', () => {
         beforeEach(() => {
           jest.useFakeTimers();
         });
+
         afterEach(() => {
           jest.useRealTimers();
         });
+
         it('lets a ticker update', () => {
           function App() {
             let [toggle, setToggle] = React.useState(0);
@@ -181,6 +300,7 @@ function runActTests(label, render, unmount) {
 
           expect(container.innerHTML).toBe('1');
         });
+
         it('can use the async version to catch microtasks', async () => {
           function App() {
             let [toggle, setToggle] = React.useState(0);
@@ -202,6 +322,7 @@ function runActTests(label, render, unmount) {
 
           expect(container.innerHTML).toBe('1');
         });
+
         it('can handle cascading promises with fake timers', async () => {
           // this component triggers an effect, that waits a tick,
           // then sets state. repeats this 5 times.
@@ -227,6 +348,7 @@ function runActTests(label, render, unmount) {
           // all 5 ticks present and accounted for
           expect(container.innerHTML).toBe('5');
         });
+
         it('flushes immediate re-renders with act', () => {
           function App() {
             let [ctr, setCtr] = React.useState(0);
@@ -280,8 +402,9 @@ function runActTests(label, render, unmount) {
         );
       });
     });
+
     describe('asynchronous tests', () => {
-      it('can handle timers', async () => {
+      it('works with timeouts', async () => {
         function App() {
           let [ctr, setCtr] = React.useState(0);
           function doSomething() {
@@ -295,16 +418,17 @@ function runActTests(label, render, unmount) {
           }, []);
           return ctr;
         }
-        act(() => {
-          render(<App />, container);
-        });
+
         await act(async () => {
+          render(<App />, container);
+          // flush a little to start the timer
+          expect(Scheduler).toFlushAndYield([]);
           await sleep(100);
         });
         expect(container.innerHTML).toBe('1');
       });
 
-      it('can handle async/await', async () => {
+      it('flushes microtasks before exiting', async () => {
         function App() {
           let [ctr, setCtr] = React.useState(0);
           async function someAsyncFunction() {
@@ -321,10 +445,7 @@ function runActTests(label, render, unmount) {
         }
 
         await act(async () => {
-          act(() => {
-            render(<App />, container);
-          });
-          // pending promises will close before this ends
+          render(<App />, container);
         });
         expect(container.innerHTML).toEqual('1');
       });
@@ -361,7 +482,7 @@ function runActTests(label, render, unmount) {
         }
       });
 
-      it('commits and effects are guaranteed to be flushed', async () => {
+      it('async commits and effects are guaranteed to be flushed', async () => {
         function App() {
           let [state, setState] = React.useState(0);
           async function something() {
@@ -372,39 +493,20 @@ function runActTests(label, render, unmount) {
             something();
           }, []);
           React.useEffect(() => {
-            Scheduler.yieldValue(state);
+            Scheduler.unstable_yieldValue(state);
           });
           return state;
         }
 
         await act(async () => {
-          act(() => {
-            render(<App />, container);
-          });
-          expect(container.innerHTML).toBe('0');
-          expect(Scheduler).toHaveYielded([0]);
+          render(<App />, container);
         });
-        // this may seem odd, but it matches user behaviour -
-        // a flash of "0" followed by "1"
+        // exiting act() drains effects and microtasks
 
+        expect(Scheduler).toHaveYielded([0, 1]);
         expect(container.innerHTML).toBe('1');
-        expect(Scheduler).toHaveYielded([1]);
       });
 
-      it('propagates errors', async () => {
-        let err;
-        try {
-          await act(async () => {
-            await sleep(100);
-            throw new Error('some error');
-          });
-        } catch (_err) {
-          err = _err;
-        } finally {
-          expect(err instanceof Error).toBe(true);
-          expect(err.message).toBe('some error');
-        }
-      });
       it('can handle cascading promises', async () => {
         // this component triggers an effect, that waits a tick,
         // then sets state. repeats this 5 times.
@@ -416,7 +518,7 @@ function runActTests(label, render, unmount) {
           }
           React.useEffect(
             () => {
-              Scheduler.yieldValue(state);
+              Scheduler.unstable_yieldValue(state);
               ticker();
             },
             [Math.min(state, 4)],
@@ -471,7 +573,7 @@ function runActTests(label, render, unmount) {
                 expect(interactions.size).toBe(1);
                 expectedInteraction = Array.from(interactions)[0];
 
-                render(<Component />, container);
+                rerender(<Component />);
               },
             );
           });
@@ -501,7 +603,7 @@ function runActTests(label, render, unmount) {
                 expect(interactions.size).toBe(1);
                 expectedInteraction = Array.from(interactions)[0];
 
-                render(<Component />, secondContainer);
+                rerender(<Component />);
               });
             },
           );
@@ -510,6 +612,205 @@ function runActTests(label, render, unmount) {
           unmount(secondContainer);
         });
       }
+    });
+
+    describe('error propagation', () => {
+      it('propagates errors - sync', () => {
+        let err;
+        try {
+          act(() => {
+            throw new Error('some error');
+          });
+        } catch (_err) {
+          err = _err;
+        } finally {
+          expect(err instanceof Error).toBe(true);
+          expect(err.message).toBe('some error');
+        }
+      });
+
+      it('should propagate errors from effects - sync', () => {
+        function App() {
+          React.useEffect(() => {
+            throw new Error('oh no');
+          });
+          return null;
+        }
+        let error;
+
+        try {
+          act(() => {
+            render(<App />, container);
+          });
+        } catch (_error) {
+          error = _error;
+        } finally {
+          expect(error instanceof Error).toBe(true);
+          expect(error.message).toBe('oh no');
+        }
+      });
+
+      it('propagates errors - async', async () => {
+        let err;
+        try {
+          await act(async () => {
+            await sleep(100);
+            throw new Error('some error');
+          });
+        } catch (_err) {
+          err = _err;
+        } finally {
+          expect(err instanceof Error).toBe(true);
+          expect(err.message).toBe('some error');
+        }
+      });
+
+      it('should cleanup after errors - sync', () => {
+        function App() {
+          React.useEffect(() => {
+            Scheduler.unstable_yieldValue('oh yes');
+          });
+          return null;
+        }
+        let error;
+        try {
+          act(() => {
+            throw new Error('oh no');
+          });
+        } catch (_error) {
+          error = _error;
+        } finally {
+          expect(error instanceof Error).toBe(true);
+          expect(error.message).toBe('oh no');
+          // should be able to render components after this tho
+          act(() => {
+            render(<App />, container);
+          });
+          expect(Scheduler).toHaveYielded(['oh yes']);
+        }
+      });
+
+      it('should cleanup after errors - async', async () => {
+        function App() {
+          async function somethingAsync() {
+            await null;
+            Scheduler.unstable_yieldValue('oh yes');
+          }
+          React.useEffect(() => {
+            somethingAsync();
+          });
+          return null;
+        }
+        let error;
+        try {
+          await act(async () => {
+            await sleep(100);
+            throw new Error('oh no');
+          });
+        } catch (_error) {
+          error = _error;
+        } finally {
+          expect(error instanceof Error).toBe(true);
+          expect(error.message).toBe('oh no');
+          // should be able to render components after this tho
+          await act(async () => {
+            render(<App />, container);
+          });
+          expect(Scheduler).toHaveYielded(['oh yes']);
+        }
+      });
+    });
+
+    describe('suspense', () => {
+      if (__DEV__) {
+        it('triggers fallbacks if available', async () => {
+          let resolved = false;
+          let resolve;
+          const promise = new Promise(_resolve => {
+            resolve = _resolve;
+          });
+
+          function Suspends() {
+            if (resolved) {
+              return 'was suspended';
+            }
+            throw promise;
+          }
+
+          function App(props) {
+            return (
+              <React.Suspense
+                fallback={<span data-test-id="spinner">loading...</span>}>
+                {props.suspend ? <Suspends /> : 'content'}
+              </React.Suspense>
+            );
+          }
+
+          // render something so there's content
+          act(() => {
+            render(<App suspend={false} />, container);
+          });
+
+          // trigger a suspendy update
+          act(() => {
+            rerender(<App suspend={true} />);
+          });
+          expect(
+            document.querySelector('[data-test-id=spinner]'),
+          ).not.toBeNull();
+
+          // now render regular content again
+          act(() => {
+            rerender(<App suspend={false} />);
+          });
+          expect(document.querySelector('[data-test-id=spinner]')).toBeNull();
+
+          // trigger a suspendy update with a delay
+          React.unstable_withSuspenseConfig(
+            () => {
+              act(() => {
+                rerender(<App suspend={true} />);
+              });
+            },
+            {timeout: 5000},
+          );
+          // the spinner shows up regardless
+          expect(
+            document.querySelector('[data-test-id=spinner]'),
+          ).not.toBeNull();
+
+          // resolve the promise
+          await act(async () => {
+            resolved = true;
+            resolve();
+          });
+
+          // spinner gone, content showing
+          expect(document.querySelector('[data-test-id=spinner]')).toBeNull();
+          expect(container.textContent).toBe('was suspended');
+        });
+      }
+    });
+    describe('warn in prod mode', () => {
+      it('warns if you try to use act() in prod mode', () => {
+        const spy = spyOnDevAndProd(console, 'error');
+
+        act(() => {});
+
+        if (!__DEV__) {
+          expect(console.error).toHaveBeenCalledTimes(1);
+          expect(console.error.calls.argsFor(0)[0]).toContain(
+            'act(...) is not supported in production builds of React',
+          );
+        } else {
+          expect(console.error).toHaveBeenCalledTimes(0);
+        }
+
+        spy.calls.reset();
+        // does not warn twice
+        act(() => {});
+        expect(console.error).toHaveBeenCalledTimes(0);
+      });
     });
   });
 }

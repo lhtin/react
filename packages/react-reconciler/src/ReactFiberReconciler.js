@@ -16,9 +16,11 @@ import type {
   Container,
   PublicInstance,
 } from './ReactFiberHostConfig';
+import {FundamentalComponent} from 'shared/ReactWorkTags';
 import type {ReactNodeList} from 'shared/ReactTypes';
 import type {ExpirationTime} from './ReactFiberExpirationTime';
 import type {SuspenseConfig} from './ReactFiberSuspenseConfig';
+import type {SuspenseHydrationCallbacks} from './ReactFiberSuspenseComponent';
 
 import {
   findCurrentHostFiber,
@@ -46,16 +48,20 @@ import {
   computeExpirationForFiber,
   scheduleWork,
   flushRoot,
+  batchedEventUpdates,
   batchedUpdates,
   unbatchedUpdates,
   flushSync,
   flushControlled,
   deferredUpdates,
   syncUpdates,
-  interactiveUpdates,
-  flushInteractiveUpdates,
+  discreteUpdates,
+  flushDiscreteUpdates,
   flushPassiveEffects,
-} from './ReactFiberScheduler';
+  warnIfNotScopedWithMatchingAct,
+  warnIfUnmockedScheduler,
+  IsThisRendererActing,
+} from './ReactFiberWorkLoop';
 import {createUpdate, enqueueUpdate} from './ReactUpdateQueue';
 import ReactFiberInstrumentation from './ReactFiberInstrumentation';
 import {
@@ -65,9 +71,13 @@ import {
 } from './ReactCurrentFiber';
 import {StrictMode} from './ReactTypeOfMode';
 import {Sync} from './ReactFiberExpirationTime';
-import {revertPassiveEffectsChange} from 'shared/ReactFeatureFlags';
 import {requestCurrentSuspenseConfig} from './ReactFiberSuspenseConfig';
-import {scheduleHotUpdate} from './ReactFiberHotReloading';
+import {
+  scheduleRefresh,
+  scheduleRoot,
+  setRefreshHandler,
+  findHostInstancesForRefresh,
+} from './ReactFiberHotReloading';
 
 type OpaqueRoot = FiberRoot;
 
@@ -157,9 +167,6 @@ function scheduleRootUpdate(
     update.callback = callback;
   }
 
-  if (revertPassiveEffectsChange) {
-    flushPassiveEffects();
-  }
   enqueueUpdate(current, update);
   scheduleWork(current, expirationTime);
 
@@ -255,10 +262,9 @@ function findHostInstanceWithWarning(
             false,
             '%s is deprecated in StrictMode. ' +
               '%s was passed an instance of %s which is inside StrictMode. ' +
-              'Instead, add a ref directly to the element you want to reference.' +
-              '\n%s' +
-              '\n\nLearn more about using refs safely here:' +
-              '\nhttps://fb.me/react-strict-mode-find-node',
+              'Instead, add a ref directly to the element you want to reference. ' +
+              'Learn more about using refs safely here: ' +
+              'https://fb.me/react-strict-mode-find-node%s',
             methodName,
             methodName,
             componentName,
@@ -269,10 +275,9 @@ function findHostInstanceWithWarning(
             false,
             '%s is deprecated in StrictMode. ' +
               '%s was passed an instance of %s which renders StrictMode children. ' +
-              'Instead, add a ref directly to the element you want to reference.' +
-              '\n%s' +
-              '\n\nLearn more about using refs safely here:' +
-              '\nhttps://fb.me/react-strict-mode-find-node',
+              'Instead, add a ref directly to the element you want to reference. ' +
+              'Learn more about using refs safely here: ' +
+              'https://fb.me/react-strict-mode-find-node%s',
             methodName,
             methodName,
             componentName,
@@ -290,8 +295,9 @@ export function createContainer(
   containerInfo: Container,
   tag: RootTag,
   hydrate: boolean,
+  hydrationCallbacks: null | SuspenseHydrationCallbacks,
 ): OpaqueRoot {
-  return createFiberRoot(containerInfo, tag, hydrate);
+  return createFiberRoot(containerInfo, tag, hydrate, hydrationCallbacks);
 }
 
 export function updateContainer(
@@ -302,6 +308,13 @@ export function updateContainer(
 ): ExpirationTime {
   const current = container.current;
   const currentTime = requestCurrentTime();
+  if (__DEV__) {
+    // $FlowExpectedError - jest isn't a global, and isn't recognized outside of tests
+    if ('undefined' !== typeof jest) {
+      warnIfUnmockedScheduler(current);
+      warnIfNotScopedWithMatchingAct(current);
+    }
+  }
   const suspenseConfig = requestCurrentSuspenseConfig();
   const expirationTime = computeExpirationForFiber(
     currentTime,
@@ -321,15 +334,17 @@ export function updateContainer(
 export {
   flushRoot,
   computeUniqueAsyncExpiration,
+  batchedEventUpdates,
   batchedUpdates,
   unbatchedUpdates,
   deferredUpdates,
   syncUpdates,
-  interactiveUpdates,
-  flushInteractiveUpdates,
+  discreteUpdates,
+  flushDiscreteUpdates,
   flushControlled,
   flushSync,
   flushPassiveEffects,
+  IsThisRendererActing,
 };
 
 export function getPublicRootInstance(
@@ -357,6 +372,9 @@ export function findHostInstanceWithNoPortals(
   const hostFiber = findCurrentHostFiberWithNoPortals(fiber);
   if (hostFiber === null) {
     return null;
+  }
+  if (hostFiber.tag === FundamentalComponent) {
+    return hostFiber.stateNode.instance;
   }
   return hostFiber.stateNode;
 }
@@ -412,10 +430,6 @@ if (__DEV__) {
       id--;
     }
     if (currentHook !== null) {
-      if (revertPassiveEffectsChange) {
-        flushPassiveEffects();
-      }
-
       const newState = copyWithSet(currentHook.memoizedState, path, value);
       currentHook.memoizedState = newState;
       currentHook.baseState = newState;
@@ -433,9 +447,6 @@ if (__DEV__) {
 
   // Support DevTools props for function components, forwardRef, memo, host components, etc.
   overrideProps = (fiber: Fiber, path: Array<string | number>, value: any) => {
-    if (revertPassiveEffectsChange) {
-      flushPassiveEffects();
-    }
     fiber.pendingProps = copyWithSet(fiber.memoizedProps, path, value);
     if (fiber.alternate) {
       fiber.alternate.pendingProps = fiber.pendingProps;
@@ -444,9 +455,6 @@ if (__DEV__) {
   };
 
   scheduleUpdate = (fiber: Fiber) => {
-    if (revertPassiveEffectsChange) {
-      flushPassiveEffects();
-    }
     scheduleWork(fiber, Sync);
   };
 
@@ -461,7 +469,6 @@ export function injectIntoDevTools(devToolsConfig: DevToolsConfig): boolean {
 
   return injectInternals({
     ...devToolsConfig,
-    scheduleHotUpdate: __DEV__ ? scheduleHotUpdate : null,
     overrideHookState,
     overrideProps,
     setSuspenseHandler,
@@ -481,5 +488,12 @@ export function injectIntoDevTools(devToolsConfig: DevToolsConfig): boolean {
       }
       return findFiberByHostInstance(instance);
     },
+    // React Refresh
+    findHostInstancesForRefresh: __DEV__ ? findHostInstancesForRefresh : null,
+    scheduleRefresh: __DEV__ ? scheduleRefresh : null,
+    scheduleRoot: __DEV__ ? scheduleRoot : null,
+    setRefreshHandler: __DEV__ ? setRefreshHandler : null,
+    // Enables DevTools to append owner stacks to error messages in DEV mode.
+    getCurrentFiber: __DEV__ ? () => ReactCurrentFiberCurrent : null,
   });
 }
